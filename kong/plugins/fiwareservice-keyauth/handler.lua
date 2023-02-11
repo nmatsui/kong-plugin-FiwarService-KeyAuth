@@ -21,6 +21,8 @@ local _realm = 'Key realm="' .. _KONG._NAME .. '"'
 
 local ERR_NO_API_KEY             = { status = 401, message = "No API key found in request" }
 local ERR_INVALID_AUTH_CRED      = { status = 401, message = "Invalid authentication credentials" }
+local ERR_NO_FIWARESERVICE       = { status = 403, message = "No Fiware-Service found in request" }
+local ERR_INVALID_FIWARESERVICE  = { status = 403, message = "Invalid tenant" }
 local ERR_INVALID_PLUGIN_CONF    = { status = 500, message = "Invalid plugin configuration" }
 local ERR_UNEXPECTED             = { status = 500, message = "An unexpected error occurred" }
 
@@ -85,8 +87,21 @@ local function get_consumer(credential)
 end
 
 
-local function rewrite_headers(plugin_conf, credential, consumer)
+local function check_fiwareservice(headers, fiwareservice_header_name, consumer)
 
+  local tenant = headers[fiwareservice_header_name]
+
+  if not tenant or type(tenant) ~= "string" or tenant == "" then
+    error(ERR_NO_FIWARESERVICE)
+  end
+
+  if tenant ~= consumer.username then
+    error(ERR_INVALID_FIWARESERVICE)
+  end
+end
+
+
+local function rewrite_headers(plugin_conf, credential, consumer)
 
   local set_header = kong.service.request.set_header
   local clear_header = kong.service.request.clear_header
@@ -131,6 +146,7 @@ local function do_authentication(plugin_conf)
 
   local credential = get_credential(headers, plugin_conf.auth_header)
   local consumer = get_consumer(credential)
+  check_fiwareservice(headers, plugin_conf.fiwareservice_header, consumer)
 
   rewrite_headers(plugin_conf, credential, consumer)
 end
