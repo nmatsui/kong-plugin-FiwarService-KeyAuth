@@ -1,5 +1,5 @@
-[![Unix build](https://img.shields.io/github/workflow/status/Kong/kong-plugin/Test?label=Test&logo=linux)](https://github.com/Kong/kong-plugin/actions/workflows/test.yml)
-[![Luacheck](https://github.com/Kong/kong-plugin/workflows/Lint/badge.svg)](https://github.com/Kong/kong-plugin/actions/workflows/lint.yml)
+[![Test](https://img.shields.io/github/actions/workflow/status/nmatsui/kong-plugin-FiwarService-KeyAuth/test.yml?branch=main)](https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth/actions/workflows/test.yml)
+[![Lint](https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth/workflows/Lint/badge.svg)](https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth/actions/workflows/lint.yml)
 
 # Kong plugin Fiware-Service Key-Auth
 
