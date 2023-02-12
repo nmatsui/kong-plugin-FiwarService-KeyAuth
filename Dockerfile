@@ -1,7 +1,7 @@
 FROM kong:3.1.1-alpine
 
 ENV PLUGIN_NAME=kong-plugin-fiwareservice-keyauth
-ARG PLUGIN_VERSION=0.1.0-1
+ARG PLUGIN_VERSION=1.0.0-1
 ENV KONG_PLUGINS=bundled,fiwareservice-keyauth
 
 WORKDIR /opt
