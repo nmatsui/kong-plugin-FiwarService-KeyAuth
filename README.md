@@ -14,7 +14,8 @@ This plugin would help you to improve the security level of [fiware-orion's mult
 1. You should make docker & docker compose plugin available.
 1. Clone this repository like below:
     ```
-    git clone https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth.git; cd kong-plugin-FiwarService-KeyAuth
+    git clone https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth.git
+    cd kong-plugin-FiwarService-KeyAuth
     ```
 
 ### Start Kong API Gateway & fiware-orion
@@ -35,14 +36,17 @@ This plugin would help you to improve the security level of [fiware-orion's mult
     ```
 1. Create a service and a route.
     ```
-    curl -i -X POST http://localhost:8001/services -d "name=orion" -d "url=http://orion:1026"
+    curl -i -X POST http://localhost:8001/services \
+         -d "name=orion" -d "url=http://orion:1026"
     ```
     ```
-    curl -i -X POST http://localhost:8001/services/orion/routes -d "hosts[]=orion.example.com"
+    curl -i -X POST http://localhost:8001/services/orion/routes \
+         -d "hosts[]=orion.example.com"
     ```
 1. Enable this plugin for the created service.
     ```
-    curl -i -X POST http://localhost:8001/services/orion/plugins -d "name=fiwareservice-keyauth"
+    curl -i -X POST http://localhost:8001/services/orion/plugins \
+         -d "name=fiwareservice-keyauth"
     ```
 ### Register test tenants
 1. Register a consumer with the tenant name as its username, and map a key-auth credential to that consumer.
@@ -50,7 +54,8 @@ This plugin would help you to improve the security level of [fiware-orion's mult
     curl -i -X POST http://localhost:8001/consumers -d "username=tenant1"
     ```
     ```
-    curl -i -X POST http://localhost:8001/consumers/tenant1/key-auth -d "key=a_credential_of_tenant1"
+    curl -i -X POST http://localhost:8001/consumers/tenant1/key-auth \
+         -d "key=a_credential_of_tenant1"
     ```
     > You should change the above credential.
 1. Similary, register another tenant.
@@ -58,7 +63,8 @@ This plugin would help you to improve the security level of [fiware-orion's mult
     curl -i -X POST http://localhost:8001/consumers -d "username=tenant2"
     ```
     ```
-    curl -i -X POST http://localhost:8001/consumers/tenant2/key-auth -d "key=a_credential_of_tenant2"
+    curl -i -X POST http://localhost:8001/consumers/tenant2/key-auth \
+         -d "key=a_credential_of_tenant2"
     ```
 ### Try authorization and authentication by this plugin
 1. You are not authenticate without a credential
