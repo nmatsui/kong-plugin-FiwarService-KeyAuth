@@ -119,6 +119,12 @@ This plugin would help you to improve the security level of [fiware-orion's mult
          -H "Authorization: a_credential_of_tenant2" -H "fiware-service: tenant1" | jq .
     ```
 
+### Shut down Kong API Gateway & fiware-orion
+1. Shut down containers.
+    ```
+    docker compose down
+    ```
+
 ## Parameters
 
 | Parameter | Type | required? | Default | Description |
