@@ -36,7 +36,7 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    command: -logLevel "debug" -dbhost "mongo" -multiservice
+    command: -logLevel "debug" -dbhost "mongo" # "-multiservice" option is enabled by default
 
   postgres:
     image: postgres:15.1-bullseye
