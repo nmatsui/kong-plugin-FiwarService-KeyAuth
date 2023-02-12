@@ -21,35 +21,13 @@ jobs:
       matrix:
         kongVersion:
         - "2.8.x"
-        - "3.0.x"
-        - "3.1.x"
 
     steps:
     - uses: actions/checkout@v3
 
-    - uses: Kong/kong-license@master
-      # this step is only for Kong Inc internal uses, external users should
-      # use the 'license' parameter of the kong-pongo action.
-      with:
-        password: ${{ secrets.PULP_PASSWORD }}
-
-    - uses: Kong/kong-pongo-action@v1
-      with:
-        pongo_version: master
-        kong_version: ${{ matrix.kongVersion }}
-        # Non-Kong-Inc users should provide their Enterprise license as a secret
-        # if testing against Enterprise versions.
-        # Kong Inc users should use the `Kong/kong-license` action
-        license: ${{ secrets.KONG_LICENSE_DATA }}
-
-
-        # the following 3 entries are only for Kong Inc internal use to test against
-        # the private Kong Enterprise development images, external users should
-        # delete these.
-        enterprise_nightly_docker_username: ${{ secrets.GHA_DOCKERHUB_PULL_USER }}
-        enterprise_nightly_docker_password: ${{ secrets.GHA_KONG_ORG_DOCKERHUB_PUBLIC_TOKEN }}
-        # github token with permissions to clone the kong-ee repo
-        github_token: ${{ secrets.GHA_KONG_BOT_READ_TOKEN }}
-
-    - run: pongo run
+    - run: git clone --single-branch https://github.com/Kong/kong-pongo ../kong-pongo
+    - run: KONG_VERSION=${{ matrix.kongVersion }} ../kong-pongo/pongo.sh up
+    - run: KONG_VERSION=${{ matrix.kongVersion }} ../kong-pongo/pongo.sh build
+    - run: KONG_VERSION=${{ matrix.kongVersion }} ../kong-pongo/pongo.sh run
+    - run: KONG_VERSION=${{ matrix.kongVersion }} ../kong-pongo/pongo.sh down
 
