@@ -1,69 +1,146 @@
 [![Unix build](https://img.shields.io/github/workflow/status/Kong/kong-plugin/Test?label=Test&logo=linux)](https://github.com/Kong/kong-plugin/actions/workflows/test.yml)
 [![Luacheck](https://github.com/Kong/kong-plugin/workflows/Lint/badge.svg)](https://github.com/Kong/kong-plugin/actions/workflows/lint.yml)
 
-Kong plugin template
-====================
+# Kong plugin Fiware-Service Key-Auth
 
-This repository contains a very simple Kong plugin template to get you
-up and running quickly for developing your own plugins.
-
-This template was designed to work with the
-[`kong-pongo`](https://github.com/Kong/kong-pongo) and
-[`kong-vagrant`](https://github.com/Kong/kong-vagrant) development environments.
-
-Please check out those repos `README` files for usage instructions. For a complete
-walkthrough check [this blogpost on the Kong website](https://konghq.com/blog/custom-lua-plugin-kong-gateway).
+This Kong plugin authenticates a HTTP client similar to the "key-auth" plugin by using auth header, and authorizes the client by verifying that the value of "fiware-service" header corresponds to the client's credential.  
 
 
-Naming and versioning conventions
-=================================
+This plugin would help you to improve the security level of [fiware-orion's multi-tenancy](https://fiware-orion.readthedocs.io/en/3.8.0/orion-api.html#multi-tenancy) by using [`Kong API Gateway`](https://github.com/Kong/kong).
 
-There are a number "named" components and related versions. These are the conventions:
+## Try this plugin
 
-* *Kong plugin name*: This is the name of the plugin as it is shown in the Kong
-  Manager GUI, and the name used in the file system. A plugin named `my-cool-plugin`
-  would have a `handler.lua` file at `./kong/plugins/my-cool-plugin/handler.lua`.
+### Preparation
+1. You should make docker & docker compose plugin available.
+1. Clone this repository like below:
+    ```
+    git clone https://github.com/nmatsui/kong-plugin-FiwarService-KeyAuth.git; cd kong-plugin-FiwarService-KeyAuth
+    ```
 
-* *Kong plugin version*: This is the version of the plugin code, expressed in
-  `x.y.z` format (using Semantic Versioning is recommended). This version should
-  be set in the `handler.lua` file as the `VERSION` property on the plugin table.
+### Start Kong API Gateway & fiware-orion
+1. Build a customized kong image which is installed this plugin.
+    ```
+    docker compose build
+    ```
+1. Start containers.
+    ```
+    docker compose up -d
+    ```
+1. Wait a moment until the containers are ready.
 
-* *LuaRocks package name*: This is the name used in the LuaRocks eco system.
-  By convention this is `kong-plugin-[KongPluginName]`. This name is used
-  for the `rockspec` file, both in the filename as well as in the contents
-  (LuaRocks requires that they match).
+### Make this plugin available
+1. Make sure that this plugin is available.
+    ```
+    curl -s http://localhost:8001/ | jq '.plugins.available_on_server."fiwareservice-keyauth"'
+    ```
+1. Create a service and a route.
+    ```
+    curl -i -X POST http://localhost:8001/services -d "name=orion" -d "url=http://orion:1026"
+    ```
+    ```
+    curl -i -X POST http://localhost:8001/services/orion/routes -d "hosts[]=orion.example.com"
+    ```
+1. Enable this plugin for the created service.
+    ```
+    curl -i -X POST http://localhost:8001/services/orion/plugins -d "name=fiwareservice-keyauth"
+    ```
+### Register test tenants
+1. Register a consumer with the tenant name as its username, and map a key-auth credential to that consumer.
+    ```
+    curl -i -X POST http://localhost:8001/consumers -d "username=tenant1"
+    ```
+    ```
+    curl -i -X POST http://localhost:8001/consumers/tenant1/key-auth -d "key=a_credential_of_tenant1"
+    ```
+    > You should change the above credential.
+1. Similary, register another tenant.
+    ```
+    curl -i -X POST http://localhost:8001/consumers -d "username=tenant2"
+    ```
+    ```
+    curl -i -X POST http://localhost:8001/consumers/tenant2/key-auth -d "key=a_credential_of_tenant2"
+    ```
+### Try authorization and authentication by this plugin
+1. You are not authenticate without a credential
+    ```
+    curl -i http://localhost:8000/version -H "Host: orion.example.com"
+    ```
+1. Even if your credential is correct, you can not access other tenants.
+    ```
+    curl -i http://localhost:8000/version -H "Host: orion.example.com" \
+         -H "Authorization: a_credential_of_tenant1" -H "fiware-service: tenant2"
+    ```
+1. If the credential/tenant pair is correct, you are allowed to use fiware-orion.
+    ```
+    curl -i http://localhost:8000/version -H "Host: orion.example.com" \
+         -H "Authorization: a_credential_of_tenant1" -H "fiware-service: tenant1"
+    ```
 
-* *LuaRocks package version*: This is the version of the package, and by convention
-  it should be identical to the *Kong plugin version*. As with the *LuaRocks package
-  name* the version is used in the `rockspec` file, both in the filename as well
-  as in the contents (LuaRocks requires that they match).
+### Try multi-tenancy with fiware-orion
+1. Tenant1's owner registers a new Entity.
+    ```
+    curl -i -X POST http://localhost:8000/v2/entities -H "Host: orion.example.com" \
+         -H "Content-Type: application/json" \
+         -H "Authorization: a_credential_of_tenant1" -H "fiware-service: tenant1" \
+         -d @- << __EOS__
+    {
+      "id": "Room1",
+      "type": "Room",
+      "temperature": {
+        "value": 23,
+        "type": "Float"
+      },
+      "pressure": {
+        "value": 720,
+        "type": "Float"
+      }
+    }
+    __EOS__
+    ```
+1. Tenant1's owner can retrieve that registered Entity.
+    ```
+    curl -s http://localhost:8000/v2/entities/Room1 -H "Host: orion.example.com" \
+         -H "Authorization: a_credential_of_tenant1" -H "fiware-service: tenant1" | jq .
+    ```
+1. Tenant2's owner can not detect Entities registerd as tenant1 in the first place.
+    ```
+    curl -s http://localhost:8000/v2/entities -H "Host: orion.example.com" \
+         -H "Authorization: a_credential_of_tenant2" -H "fiware-service: tenant2" | jq .
+    ```
+1. Of cource, tenant2's owner can not retrieve tenant1's Entities by his credential.
+    ```
+    curl -s http://localhost:8000/v2/entities/Room1 -H "Host: orion.example.com" \
+         -H "Authorization: a_credential_of_tenant2" -H "fiware-service: tenant1" | jq .
+    ```
 
-* *LuaRocks rockspec revision*: This is the revision of the rockspec, and it only
-  changes if the rockspec is updated. So when the source code remains the same,
-  but build instructions change for example. When there is a new *LuaRocks package
-  version* the *LuaRocks rockspec revision* is reset to `1`. As with the *LuaRocks
-  package name* the revision is used in the `rockspec` file, both in the filename
-  as well as in the contents (LuaRocks requires that they match).
+## Parameters
 
-* *LuaRocks rockspec name*: this is the filename of the rockspec. This is the file
-  that contains the meta-data and build instructions for the LuaRocks package.
-  The filename is `[package name]-[package version]-[package revision].rockspec`.
+| Parameter | Type | required? | Default | Description |
+|:--|:--|:--|:--|:--|
+| name | string | *required* | | The name of the plugin, in this case `fiwareservice-keyauth` |
+| config.auth\_header | string |*optional* | **authorization** | Describes an authentication header name where this plugin will look for a credential. The key names may only contain [a-z], [A-Z], [0-9] and [-]. |
+| config.fiwareservice\_header | string | *optional*   | **Fiware-Service** | Describes the Fiware-Service header name. |
+| config.hide\_credentials | boolean | *optional* | **false**  | An optional boolean value telling this plugin to send or not to send the credential to the upstream service. If true, this plugin strips the credential from the request header before proxying it to upstream. |
 
-Example
--------
+## Container images
 
-* *Kong plugin name*: `my-cool-plugin`
+| Module | Version | Repository |
+|:--|:--|:--|
+| Kong API Gateway | kong:3.1.1-alpine | [Docker official](https://hub.docker.com/_/kong) |
+| fiware orion | fiware/orion:3.8.0 | [Fiware official](https://hub.docker.com/r/fiware/orion) |
+| PostgreSQL | postgres:15.1-bullseye | [Docker official](https://hub.docker.com/_/postgres) |
+| MongoDB | mongo:4.4 | [Docker official](https://hub.docker.com/_/mongo) |
 
-* *Kong plugin version*: `1.4.2` (set in the `VERSION` field inside `handler.lua`)
+## Development
 
-This results in:
+This plugin is designed to work with the [`kong-pongo`](https://github.com/Kong/kong-pongo).  
+Please check out kong-pongo's `README` files for usage instructions. For a complete walkthrough check [this blogpost on the Kong website](https://konghq.com/blog/custom-lua-plugin-kong-gateway).
 
-* *LuaRocks package name*: `kong-plugin-my-cool-plugin`
+## LICENSE
 
-* *LuaRocks package version*: `1.4.2`
+[Apache-2.0 License](/LICENSE)
 
-* *LuaRocks rockspec revision*: `1`
+## Copyright
 
-* *rockspec file*: `kong-plugin-my-cool-plugin-1.4.2-1.rockspec`
+Copyright (c) 2023 Nobuyuki Matsui <nobuyuki.matsui@gmail.com>
 
-* File *`handler.lua`* is located at: `./kong/plugins/my-cool-plugin/handler.lua` (and similar for the other plugin files)
