@@ -14,32 +14,64 @@ end
 
 describe(PLUGIN_NAME .. ": (schema)", function()
 
-
-  it("accepts distinct request_header and response_header", function()
-    local ok, err = validate({
-        request_header = "My-Request-Header",
-        response_header = "Your-Response",
-      })
+  it("acceps no parameter", function()
+    local ok, err = validate({})
     assert.is_nil(err)
-    assert.is_truthy(ok)
-  end)
-
-
-  it("does not accept identical request_header and response_header", function()
-    local ok, err = validate({
-        request_header = "they-are-the-same",
-        response_header = "they-are-the-same",
-      })
-
     assert.is_same({
-      ["config"] = {
-        ["@entity"] = {
-          [1] = "values of these fields must be distinct: 'request_header', 'response_header'"
-        }
-      }
-    }, err)
-    assert.is_falsy(ok)
+      auth_header = "authorization",
+      fiwareservice_header = "Fiware-Service",
+      hide_credentials = false
+    }, ok.config)
   end)
 
+  it("acceps customization of 'auth_header' parameter", function()
+    local ok, err = validate({
+      auth_header = "Test-auth-header",
+    })
+    assert.is_nil(err)
+    assert.is_same({
+      auth_header = "Test-auth-header",
+      fiwareservice_header = "Fiware-Service",
+      hide_credentials = false
+    }, ok.config)
+  end)
+
+  it("acceps customization of 'fiwareservice_header' parameter", function()
+    local ok, err = validate({
+      fiwareservice_header = "Test-fiwareservice-header",
+    })
+    assert.is_nil(err)
+    assert.is_same({
+      auth_header = "authorization",
+      fiwareservice_header = "Test-fiwareservice-header",
+      hide_credentials = false
+    }, ok.config)
+  end)
+
+  it("acceps customization of 'hide_credentials' parameter", function()
+    local ok, err = validate({
+      hide_credentials = true,
+    })
+    assert.is_nil(err)
+    assert.is_same({
+      auth_header = "authorization",
+      fiwareservice_header = "Fiware-Service",
+      hide_credentials = true
+    }, ok.config)
+  end)
+
+  it("accepts customization of all parameters", function()
+    local ok, err = validate({
+      auth_header = "Test-auth-header",
+      fiwareservice_header = "Test-fiwareservice-header",
+      hide_credentials = true,
+    })
+    assert.is_nil(err)
+    assert.is_same({
+      auth_header = "Test-auth-header",
+      fiwareservice_header = "Test-fiwareservice-header",
+      hide_credentials = true,
+    }, ok.config)
+  end)
 
 end)
